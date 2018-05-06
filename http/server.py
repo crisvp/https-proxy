@@ -1,12 +1,16 @@
 import cache
 import BaseHTTPServer
 
+
 class Server():
     def __init__(self, listen, **kwargs):
-        self._server = BaseHTTPServer.HTTPServer(listen, HandleRequest, **kwargs)
+        self._server = BaseHTTPServer.HTTPServer(listen,
+                                                 HandleRequest,
+                                                 **kwargs)
 
     def serve(self):
         self._server.serve_forever()
+
 
 class HandleRequest(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_GET(self):

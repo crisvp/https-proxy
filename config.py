@@ -1,6 +1,7 @@
 import ConfigParser
 import StringIO
 
+
 class ProxyConfiguration:
     def __init__(self, config_file='https-proxy.cfg'):
         config_defaults = {
@@ -9,7 +10,8 @@ class ProxyConfiguration:
             'database_persist': '/var/lib/https-proxy.sqlite',
             'rule_extensions': '.xml,.XML'
         }
-        self._config = ConfigParser.SafeConfigParser(config_defaults, allow_no_value=True)
+        self._config = ConfigParser.SafeConfigParser(config_defaults,
+                                                     allow_no_value=True)
         with open(config_file, 'r') as f:
             config_string = '[section]\n' + f.read()
 

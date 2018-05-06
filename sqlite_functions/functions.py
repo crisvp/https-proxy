@@ -1,8 +1,12 @@
+import regex as re
+
 import util
+
 
 def sqlite_regexp(expression, string):
     result = re.search(expression, string, re.IGNORECASE)
     return (result is not None)
+
 
 def wildcard_match(string, pattern):
     if '*' not in pattern:

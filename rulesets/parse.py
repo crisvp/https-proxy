@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 # vim: et ts=4 sw=4
 
-import sqlite3
 import collections
 import lxml.etree
-import urlparse
-import logging
-import regex as re
-import time
 import sys
 import os
+
 
 # There doesn't seem to be an XSD so just do some rudimentary
 # validation here.
@@ -21,6 +17,7 @@ def valid_ruleset(ruleset):
 
     return True
 
+
 def parse_rulesets(rule_path, valid_extensions):
     parser = lxml.etree.XMLParser()
     rulefiles = os.listdir(rule_path)
@@ -29,8 +26,9 @@ def parse_rulesets(rule_path, valid_extensions):
     i = 0
 
     for rulefile in rulefiles:
-        _, e = os.path.splitext(rulefile)
-        if e not in valid_extensions: continue
+        _, e = os.path.splitext(rulefile) # noqa
+        if e not in valid_extensions:
+            continue
         sys.stdout.write('Parsing rule file %d/%d\r' % (i, len(rulefiles)))
         i += 1
 #        if i > 1000: break
@@ -79,7 +77,7 @@ def parse_rulesets(rule_path, valid_extensions):
             continue
 
         rulesets.append(ruleset)
-    
+
     print('Valid rulesets: %d' % (stats['valid']))
     print('Invalid rulesets: %d' % (stats['invalid']))
 

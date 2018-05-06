@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # vim: et ts=4 sw=4
 
-import regex as re
 
 def wildcard_to_regexp(wildcard):
     regexp = wildcard

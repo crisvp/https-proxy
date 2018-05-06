@@ -3,6 +3,7 @@ import time
 
 logger = logging.getLogger(__name__)
 
+
 def lru_cache(max_size=1000):
     cache = {}
     last_used = {}

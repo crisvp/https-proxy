@@ -2,20 +2,15 @@
 # vim: et ts=4 sw=4
 
 import sqlite3
-import lxml.etree
-import logging
-import regex as re
 import logging
 import shutil
 import time
-import sys
 import os
 
 import sqlite_functions
 import rulesets
 import database
 import cache
-import util
 import config
 import http.server
 
@@ -28,10 +23,11 @@ conn.create_function('wildcard_match', 2, sqlite_functions.wildcard_match)
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
-logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+logFormatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s] %(message)s")
 consoleHandler = logging.StreamHandler()
 consoleHandler.setFormatter(logFormatter)
 logger.addHandler(consoleHandler)
+
 
 def rebuild_database():
     db_file = proxy_config.get('database')
@@ -47,13 +43,15 @@ def rebuild_database():
     # Not sure if you can actually do this, but stuff *should* be on disk.
     shutil.copyfile(db_file, db_persist)
 
+
 if __name__ == '__main__':
     db_file = proxy_config.get('database')
     db_persist = proxy_config.get('database_persist')
 
     if not os.path.isfile(db_file) or os.path.getsize(db_file) == 0:
         if os.path.isfile(db_persist) and os.path.getsize(db_persist) > 1:
-            logger.info('Copying persistent database (%s) to working location %s',
+            logger.info(
+                'Copying persistent database (%s) to working location %s',
                 db_persist, db_file)
             shutil.copyfile(db_persist, db_file)
         else:
