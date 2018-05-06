@@ -14,25 +14,45 @@ class ProxyConfiguration:
             # Tuple contains the default and the command line flag.
             'rules': ('/usr/src/https-everywhere/rules', 'r'),
             'action': ('server', 'a'),
+            'configfile': ('/etc/https-proxy.cfg', 'c'),
             'database': ('/dev/shm/https-proxy.sqlite', 'd'),
             'database_persist': ('/var/lib/https-proxy/https-proxy.sqlite',
                                  'D'),
             'listen': ('127.0.0.1:8000', 'l'),
             'rule_extensions': ('.xml,.XML', None),
         }
-
-        configparser_defaults = {}
-        for k, v in self.config_defaults.items():
-            configparser_defaults[k] = v[0]
-
-        self._configfile = ConfigParser.SafeConfigParser(configparser_defaults,
-                                                         allow_no_value=True)
-        with open(config_file, 'r') as f:
-            config_string = '[section]\n' + f.read()
-
-        fp = StringIO.StringIO(config_string)
-        self._configfile.readfp(fp)
+        self._configfile = None
         self.init_arguments()
+
+        self.configparser_defaults = {}
+        for k, v in self.config_defaults.items():
+            self.configparser_defaults[k] = v[0]
+
+        self._configfile = ConfigParser.SafeConfigParser(self.configparser_defaults, # noqa
+                                                         allow_no_value=True)
+        self._configfile.add_section('section')
+
+        try:
+            with open(self['configfile'], 'r') as f:
+                config_string = '[section]\n' + f.read()
+
+            fp = StringIO.StringIO(config_string)
+            self._configfile.readfp(fp)
+        except Exception as e:
+            if len(logger.handlers) == 0:
+                logging.basicConfig()
+            logger.warn('Could not open configuration file %s. ' \
+                        'Using defaults.', self['configfile'])
+
+
+    def default_configuration(self):
+        fp = StringIO.StringIO()
+
+        configfile = ConfigParser.SafeConfigParser(self.configparser_defaults,
+                                                   allow_no_value=True)
+        configfile.write(fp)
+
+        return configfile.getvalue()
 
     def init_arguments(self):
         description = 'HTTP to HTTPS redirection server'
@@ -66,14 +86,26 @@ class ProxyConfiguration:
 
     def get(self, option):
         config_file_value = self._configfile.get('section', option)
-        argument_value = getattr(self.args,
-                                 self.config_defaults[option][1],
-                                 config_file_value)
+
+        if self.config_defaults[option][1] is None:
+            argument_value = config_file_value
+        else:
+            argument_value = getattr(self.args,
+                                     self.config_defaults[option][1],
+                                     config_file_value)
 
         return argument_value
 
     def __getitem__(self, item):
         return self.get(item)
 
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+consoleHandler = logging.StreamHandler()
+logger.addHandler(consoleHandler)
+
+logFormatter = logging.Formatter("%(asctime)s [%(name)15s:%(levelname)-5.5s] %(message)s")
+consoleHandler.setFormatter(logFormatter)
 
 Configuration = ProxyConfiguration()

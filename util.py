@@ -14,14 +14,15 @@ class Timer():
         self._start_time = None
         self._end_time = None
 
-    def start_timer(self, message):
-        logger.log(self._loglevel, "%s", message)
+    def start_timer(self, message, *args, **kwargs):
+        logger.log(self._loglevel, message, *args, **kwargs)
         self._start_time = time.time()
 
-    def end(self, message):
+    def end(self, message, *args, **kwargs):
         self._end_time = time.time()
-        logger.log(self._loglevel, "%s",
-                   message.format(self._end_time - self._start_time))
+        logger.log(self._loglevel,
+                   message.format(self._end_time - self._start_time),
+                   *args, **kwargs)
 
 
 def parse_address(address):

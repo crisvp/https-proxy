@@ -4,6 +4,7 @@
 import sqlite3
 import logging
 import shutil
+import sys
 import os
 
 import sqlite_functions
@@ -15,18 +16,7 @@ import util
 import http.server
 
 proxy_config = config.Configuration
-
-conn = sqlite3.connect(proxy_config.get('database'))
-conn.create_function('regexp', 2, sqlite_functions.sqlite_regexp)
-conn.create_function('wildcard_match', 2, sqlite_functions.wildcard_match)
-
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-
-logFormatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s] %(message)s")
-consoleHandler = logging.StreamHandler()
-consoleHandler.setFormatter(logFormatter)
-logger.addHandler(consoleHandler)
 
 
 def rebuild_database():
@@ -51,8 +41,8 @@ def rebuild_database():
 # Expected test results aren't really obvious. We can't assert an output
 # value. So we just run the tests and see if anything explodes.
 #
-def run_tests(iterations=1):
-    c = conn.cursor()
+def run_tests(connection, iterations=1):
+    c = connection.cursor()
 
     # Implicit tests
     c.execute('SELECT target FROM targets')
@@ -78,28 +68,62 @@ def run_tests(iterations=1):
 
     c.close()
 
+def copy_persistent():
+    if proxy_config['database_persist'].lower() == 'off':
+        logger.info('Not copying persistent database.')
+        return
+
+    logger.info('Copying persistent database (%s) to working location %s',
+                proxy_config['database_persist'], proxy_config['database'])
+
+    shutil.copyfile(proxy_config['database_persist'], proxy_config['database'])
 
 if __name__ == '__main__':
-    if not os.path.isfile(proxy_config['database']) or \
-       os.path.getsize(proxy_config['database']) == 0:
+    rebuild = False
+    if proxy_config['action'] == 'update':
+        try:
+            logger.info('Removing database file %s', proxy_config['database'])
+            os.remove(proxy_config['database'])
+        except os.IOError as e:
+            if e.errno != 2:
+                raise e
+        rebuild = True
+
+    if not rebuild and (not os.path.isfile(proxy_config['database']) or
+       os.path.getsize(proxy_config['database']) == 0):
         if os.path.isfile(proxy_config['database_persist']) and \
            os.path.getsize(proxy_config['database_persist']) > 1:
-            logger.info(
-                'Copying persistent database (%s) to working location %s',
-                proxy_config['database_persist'], proxy_config['database'])
-            shutil.copyfile(proxy_config['database_persist'],
-                            proxy_config['database'])
+            copy_persistent()
         else:
-            rebuild_database()
+            rebuild = True
+
+    conn = sqlite3.connect(proxy_config.get('database'))
+    conn.create_function('regexp', 2, sqlite_functions.sqlite_regexp)
+    conn.create_function('wildcard_match', 2, sqlite_functions.wildcard_match)
+
+    if rebuild:
+        timer = util.Timer()
+        timer.start_timer('Rereading rulesets from %s', proxy_config['rules'])
+        rebuild_database()
+        timer.end_timer('Reread all rulesets. Took {:.10f} seconds.')
+        copy_persistent()
 
     timer = util.Timer()
-    timer.start_timer('Loading rulesets ...')
+    timer.start_timer('Reading rulesets into memory ...')
     cache.cache.populate(conn)
     timer.end('Rules loaded in {:.4f} seconds.')
 
     if proxy_config['action'] == 'test':
-        run_tests()
+        run_tests(conn)
     elif proxy_config['action'] == 'server':
         listen = util.parse_address(proxy_config['listen'])
-        server = http.server.Server(listen)
-        server.serve()
+        try:
+            server = http.server.Server(listen)
+            server.serve()
+        except Exception as e:
+            logger.error('Exception happened. Stopping server.')
+            logger.error('Exception: %s: %s', sys.exc_info()[0],
+                         sys.exc_info()[1])
+            if hasattr(e, 'errno'):
+                if e.errno == 13 and listen[1] < 1024:
+                    logger.error('You must be root to use port %d', listen[1])

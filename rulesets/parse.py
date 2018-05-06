@@ -3,8 +3,12 @@
 
 import collections
 import lxml.etree
+import logging
 import sys
+import time
 import os
+
+logger = logging.getLogger(__name__)
 
 
 # There doesn't seem to be an XSD so just do some rudimentary
@@ -25,13 +29,22 @@ def parse_rulesets(rule_path, valid_extensions):
     stats = collections.defaultdict(int)
     i = 0
 
+    start_time = time.time()
+    avg_time = 0
+
     for rulefile in rulefiles:
         _, e = os.path.splitext(rulefile) # noqa
         if e not in valid_extensions:
+            stats['ignored'] += 1
             continue
-        sys.stdout.write('Parsing rule file %d/%d\r' % (i, len(rulefiles)))
         i += 1
-#        if i > 1000: break
+        if i % 1000 == 0:
+            avg_time = (time.time() - start_time) / i
+            remaining = (len(rulefiles) - i) * avg_time
+            logger.info('Parsing rule file %d/%d (Elapsed: %.2f sec, ' \
+                        'Remaining: %.2f sec)\r' % (i, len(rulefiles),
+                                                    time.time() - start_time,
+                                                    remaining))
 
         try:
             tree = lxml.etree.parse(os.path.join(rule_path, rulefile), parser)
@@ -78,7 +91,9 @@ def parse_rulesets(rule_path, valid_extensions):
 
         rulesets.append(ruleset)
 
-    print('Valid rulesets: %d' % (stats['valid']))
-    print('Invalid rulesets: %d' % (stats['invalid']))
+    logger.info('Valid rulesets: %d, Invalid rulesets: %d, Ignored files: %d',
+                len(rulesets), stats['invalid'], stats['ignored'])
+    avg_time = i / (time.time() - start_time)
+    logger.info('Processed %.2f files per second' % (avg_time))
 
     return rulesets
