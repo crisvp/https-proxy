@@ -38,12 +38,11 @@ class ProxyConfiguration:
 
             fp = StringIO.StringIO(config_string)
             self._configfile.readfp(fp)
-        except Exception as e:
+        except Exception:
             if len(logger.handlers) == 0:
                 logging.basicConfig()
-            logger.warn('Could not open configuration file %s. ' \
+            logger.warn('Could not open configuration file %s. '
                         'Using defaults.', self['configfile'])
-
 
     def default_configuration(self):
         fp = StringIO.StringIO()
@@ -99,13 +98,15 @@ class ProxyConfiguration:
     def __getitem__(self, item):
         return self.get(item)
 
+
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 consoleHandler = logging.StreamHandler()
 logger.addHandler(consoleHandler)
 
-logFormatter = logging.Formatter("%(asctime)s [%(name)15s:%(levelname)-5.5s] %(message)s")
+logFormatter = logging.Formatter("%(asctime)s [%(name)15s:"
+                                 "%(levelname)-5.5s] %(message)s")
 consoleHandler.setFormatter(logFormatter)
 
 Configuration = ProxyConfiguration()

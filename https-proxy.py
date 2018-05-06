@@ -68,6 +68,7 @@ def run_tests(connection, iterations=1):
 
     c.close()
 
+
 def copy_persistent():
     if proxy_config['database_persist'].lower() == 'off':
         logger.info('Not copying persistent database.')
@@ -77,6 +78,7 @@ def copy_persistent():
                 proxy_config['database_persist'], proxy_config['database'])
 
     shutil.copyfile(proxy_config['database_persist'], proxy_config['database'])
+
 
 if __name__ == '__main__':
     rebuild = False

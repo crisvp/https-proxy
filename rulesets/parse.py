@@ -4,7 +4,6 @@
 import collections
 import lxml.etree
 import logging
-import sys
 import time
 import os
 
@@ -41,7 +40,7 @@ def parse_rulesets(rule_path, valid_extensions):
         if i % 1000 == 0:
             avg_time = (time.time() - start_time) / i
             remaining = (len(rulefiles) - i) * avg_time
-            logger.info('Parsing rule file %d/%d (Elapsed: %.2f sec, ' \
+            logger.info('Parsing rule file %d/%d (Elapsed: %.2f sec, '
                         'Remaining: %.2f sec)\r' % (i, len(rulefiles),
                                                     time.time() - start_time,
                                                     remaining))
