@@ -1,15 +1,23 @@
 import cache
 import BaseHTTPServer
+import logging
+import socket
+
+logger = logging.getLogger(__name__)
 
 
-class Server():
+class Server(BaseHTTPServer.HTTPServer, object):
     def __init__(self, listen, **kwargs):
-        self._server = BaseHTTPServer.HTTPServer(listen,
-                                                 HandleRequest,
-                                                 **kwargs)
+        sock = socket.getaddrinfo(listen[0], listen[1])
+        self.address_family = sock[0][0]
+
+        super(Server, self).__init__((sock[0][4][0], sock[0][4][1]),
+                                     HandleRequest, **kwargs)
+        logger.info('HTTP server listening on %s, port %d',
+                    sock[0][4][0], sock[0][4][1])
 
     def serve(self):
-        self._server.serve_forever()
+        self.serve_forever()
 
 
 class HandleRequest(BaseHTTPServer.BaseHTTPRequestHandler):

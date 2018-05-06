@@ -1,6 +1,43 @@
 #!/usr/bin/env python
 # vim: et ts=4 sw=4
 
+import logging
+import regex as re
+import time
+
+logger = logging.getLogger(__name__)
+
+
+class Timer():
+    def __init__(self, loglevel='DEBUG'):
+        self._loglevel = logging.getLevelName(loglevel)
+        self._start_time = None
+        self._end_time = None
+
+    def start_timer(self, message):
+        logger.log(self._loglevel, "%s", message)
+        self._start_time = time.time()
+
+    def end(self, message):
+        self._end_time = time.time()
+        logger.log(self._loglevel, "%s",
+                   message.format(self._end_time - self._start_time))
+
+
+def parse_address(address):
+    # if only 1 colon, assume hostname:port or IPv4:port
+    colons = address.count(':')
+    if colons == 1:
+        [host, port] = address.split(':')
+        port = int(port)
+        return (host, port)
+
+    match = re.match(r'^\[?([:a-f0-9]+)\]?:([0-9]+)$', address)
+    host = match.group(1)
+    port = int(match.group(2))
+
+    return (host, port)
+
 
 def wildcard_to_regexp(wildcard):
     regexp = wildcard

@@ -1,22 +1,79 @@
 import ConfigParser
 import StringIO
+import logging
+import argparse
+
+import version
+
+logger = logging.getLogger(__name__)
 
 
 class ProxyConfiguration:
     def __init__(self, config_file='https-proxy.cfg'):
-        config_defaults = {
-            'rules': './https-everywhere/rules',
-            'database': '/dev/shm/https-proxy.sqlite',
-            'database_persist': '/var/lib/https-proxy.sqlite',
-            'rule_extensions': '.xml,.XML'
+        self.config_defaults = {
+            # Tuple contains the default and the command line flag.
+            'rules': ('/usr/src/https-everywhere/rules', 'r'),
+            'action': ('server', 'a'),
+            'database': ('/dev/shm/https-proxy.sqlite', 'd'),
+            'database_persist': ('/var/lib/https-proxy/https-proxy.sqlite',
+                                 'D'),
+            'listen': ('127.0.0.1:8000', 'l'),
+            'rule_extensions': ('.xml,.XML', None),
         }
-        self._config = ConfigParser.SafeConfigParser(config_defaults,
-                                                     allow_no_value=True)
+
+        configparser_defaults = {}
+        for k, v in self.config_defaults.items():
+            configparser_defaults[k] = v[0]
+
+        self._configfile = ConfigParser.SafeConfigParser(configparser_defaults,
+                                                         allow_no_value=True)
         with open(config_file, 'r') as f:
             config_string = '[section]\n' + f.read()
 
         fp = StringIO.StringIO(config_string)
-        self._config.readfp(fp)
+        self._configfile.readfp(fp)
+        self.init_arguments()
+
+    def init_arguments(self):
+        description = 'HTTP to HTTPS redirection server'
+        parser = argparse.ArgumentParser(description=description)
+        parser.add_argument('-v', action='version', version=version.VERSION,
+                            help='Show version information')
+        parser.add_argument('-a', metavar='ACTION',
+                            default='server',
+                            choices=['server', 'test', 'update'],
+                            help='One of server, test, update (server)')
+        parser.add_argument('-c', metavar='CONFIGFILE',
+                            default='/etc/https-proxy.cfg',
+                            help='Configuration file (/etc/https-proxy.cfg)'),
+        parser.add_argument('-r', metavar='RULES',
+                            default=argparse.SUPPRESS,
+                            help='Rules directory (%s)' %
+                            (self.config_defaults['rules'][0]))
+        parser.add_argument('-d', metavar='DATABASE',
+                            default=argparse.SUPPRESS,
+                            help='SQLite database location (%s)' %
+                            (self.config_defaults['database'][0]))
+        parser.add_argument('-D', metavar='DATABASE_PERSIST',
+                            default=argparse.SUPPRESS,
+                            help='Persistent SQLite database location (%s) ' %
+                            (self.config_defaults['database_persist'][0]))
+        parser.add_argument('-l', metavar='LISTEN',
+                            default=argparse.SUPPRESS,
+                            help='Address and port to listen on (%s)' %
+                            (self.config_defaults['listen'][0]))
+        self.args = parser.parse_args()
 
     def get(self, option):
-        return self._config.get('section', option)
+        config_file_value = self._configfile.get('section', option)
+        argument_value = getattr(self.args,
+                                 self.config_defaults[option][1],
+                                 config_file_value)
+
+        return argument_value
+
+    def __getitem__(self, item):
+        return self.get(item)
+
+
+Configuration = ProxyConfiguration()
