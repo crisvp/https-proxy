@@ -79,6 +79,7 @@ class TargetCache:
         logger.debug('Matching rulesets: %s', matching_rulesets)
 
         rules = list()
+        exclusions = list()
         c = self._conn.cursor()
         for match in matching_rulesets:
             c.execute('SELECT exclusion FROM exclusions WHERE ruleset_id = ?', (match[0],))
