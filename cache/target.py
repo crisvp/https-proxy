@@ -43,8 +43,8 @@ class TargetCache:
     def lookup_rulesets(self, host):
         targets = list()
         for target in self._target_simple:
-            if host.endswith(target[1]):
-                logger.debug('endswith: %s, matches %s', target[1], host)
+            if host == target[1]:
+                logger.debug('equals: %s, matches %s', target[1], host)
                 targets.append((target[0], target[1]))
 
         for target in self._target_regexp:
